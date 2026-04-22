@@ -1,0 +1,99 @@
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+\begin{document}
+
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+  \textbf{\href{}{\Large << name | escape_tex >>}} & Email : \href{mailto:<< email | escape_tex >>}{<< email | escape_tex >>}\\
+  << linkedin | escape_tex >> & Mobile : << phone | escape_tex >> \\
+\end{tabular*}
+
+<BLOCK> if education </BLOCK>
+\section{Education}
+  \begin{itemize}[leftmargin=0.15in, label={}]
+    <BLOCK> for edu in education </BLOCK>
+    \item
+      \begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+        \textbf{<< edu.institution | escape_tex >>} & << edu.startDate | escape_tex >> -- << edu.endDate | escape_tex >> \\
+        \textit{<< edu.degree | escape_tex >>} & \textit{GPA: << edu.gpa | escape_tex >>} \\
+      \end{tabular*}
+    <BLOCK> endfor </BLOCK>
+  \end{itemize}
+<BLOCK> endif </BLOCK>
+
+<BLOCK> if experience </BLOCK>
+\section{Experience}
+  \begin{itemize}[leftmargin=0.15in, label={}]
+    <BLOCK> for exp in experience </BLOCK>
+    \item
+      \begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+        \textbf{<< exp.title | escape_tex >>} & << exp.startDate | escape_tex >> -- << exp.endDate | escape_tex >> \\
+        \textit{<< exp.company | escape_tex >>} & \\
+      \end{tabular*}
+      \begin{itemize}
+        <BLOCK> for desc in exp.description </BLOCK>
+        \item \small{<< desc | escape_tex >>}
+        <BLOCK> endfor </BLOCK>
+      \end{itemize}
+    <BLOCK> endfor </BLOCK>
+  \end{itemize}
+<BLOCK> endif </BLOCK>
+
+<BLOCK> if projects </BLOCK>
+\section{Projects}
+  \begin{itemize}[leftmargin=0.15in, label={}]
+    <BLOCK> for proj in projects </BLOCK>
+    \item
+      \textbf{<< proj.name | escape_tex >>} \textit{<< proj.technologies | join(', ') | escape_tex >>} \\
+      \begin{itemize}
+        <BLOCK> for desc in proj.description </BLOCK>
+        \item \small{<< desc | escape_tex >>}
+        <BLOCK> endfor </BLOCK>
+      \end{itemize}
+    <BLOCK> endfor </BLOCK>
+  \end{itemize}
+<BLOCK> endif </BLOCK>
+
+<BLOCK> if skills </BLOCK>
+\section{Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \item{
+     \textbf{Technical Skills}{: << skills | join(', ') | escape_tex >>}
+    }
+ \end{itemize}
+<BLOCK> endif </BLOCK>
+
+\end{document}
