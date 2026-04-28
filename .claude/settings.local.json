@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv\\\\Scripts\\\\python.exe -m uvicorn app.main:app --reload --port 8000)",
+      "Bash(python -m uvicorn app.main:app --reload --port 8000)",
+      "Bash(echo \"Backend PID: $!\")",
+      "Bash(npm run *)",
+      "Bash(echo \"Frontend PID: $!\")",
+      "Bash(pip install *)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(netstat -ano)",
+      "Bash(timeout 10 python -m uvicorn app.main:app --port 8000)",
+      "Bash(python -c \"from app.main import app\")",
+      "Bash(pip show *)",
+      "Bash(pip uninstall *)",
+      "PowerShell(Start-Process python -ArgumentList \"-m\", \"uvicorn\", \"app.main:app\", \"--reload\", \"--port\", \"8000\" -WorkingDirectory \"C:\\\\Users\\\\KIIT0001\\\\Desktop\\\\A2A\\\\backend\" -WindowStyle Hidden -PassThru | Select-Object Id)",
+      "Bash(python -c \"from app.main import app; print\\('OK'\\)\")",
+      "PowerShell(netstat *)"
+    ]
+  }
+}

@@ -9,6 +9,7 @@ class EventBus:
         self._queue: asyncio.Queue = asyncio.Queue()
         self._sse_queue: asyncio.Queue = asyncio.Queue()
         self._dlq: asyncio.Queue = asyncio.Queue()
+        self.active_session_id: str | None = None
     
     def subscribe(self, agent_name: str, callback: Callable[[A2AMessage], Any]):
         if agent_name not in self._subscribers:

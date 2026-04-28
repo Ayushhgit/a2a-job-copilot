@@ -44,13 +44,34 @@ class BaseAgent(ABC):
             )
 
     async def process(self, message: A2AMessage):
-        prompt = f"Message received: {json.dumps(message.payload)}\nInstruction: {self.instruction}"
+        payload_str = json.dumps(message.payload)[:3000]
+        prompt = f"Message received: {payload_str}\nInstruction: {self.instruction}"
         
         try:
             decision_data = await self.decide_next_action(prompt)
+        except Exception as llm_err:
+            err_str = str(llm_err)
+            msg = "Groq rate limit exhausted. Try again later." if ("429" in err_str or "RetryError" in err_str) else f"LLM call failed: {err_str[:120]}"
+            await self._log(msg, context=message.context)
+            await self.send_message(receiver="Router", msg_type="result",
+                payload={"result": f"FAILED: {msg}"}, context=message.context)
+            return
+
+        try:
+            logger.debug(f"{self.name} raw LLM decision: {decision_data}")
+            if "action" in decision_data and "next_action" not in decision_data:
+                decision_data["next_action"] = decision_data.pop("action")
+            if decision_data.get("next_action") not in ("route", "use_tool", "respond", "complete"):
+                decision_data["next_action"] = "route"
+            if "target_agent" not in decision_data or not decision_data["target_agent"]:
+                decision_data["target_agent"] = "Router"
+            if not decision_data.get("reasoning"):
+                decision_data["reasoning"] = decision_data.get("reason") or "No reasoning provided."
+            allowed = {"next_action", "target_agent", "reasoning", "tool_name", "tool_args", "result"}
+            decision_data = {k: v for k, v in decision_data.items() if k in allowed}
             decision = AgentDecision(**decision_data)
         except ValidationError as e:
-            logger.error(f"LLM produced invalid decision schema: {e}")
+            logger.error(f"LLM produced invalid decision schema: {e}. Data: {decision_data}")
             await self._log("LLM schema validation failed, falling back to Router", context=message.context)
             decision = AgentDecision(next_action="route", target_agent="Router", reasoning="LLM parsing failure.")
 
@@ -95,20 +116,34 @@ class BaseAgent(ABC):
                      context=message.context
                 )
         else:
-             await self.send_message(
-                receiver="Router", 
+            raw = decision.result or "Completed step."
+            # Try to parse result as JSON so downstream agents get a usable object
+            try:
+                parsed = json.loads(raw)
+                payload = {"result": raw, "resume": parsed, "original": message.payload}
+            except (json.JSONDecodeError, TypeError):
+                payload = {"result": raw, "original": message.payload}
+            await self.send_message(
+                receiver="Router",
                 msg_type="result",
-                payload={"result": decision.result or "Completed step."},
+                payload=payload,
                 context=message.context
             )
              
     async def decide_next_action(self, prompt: str) -> dict:
         system_prompt = f"""You are {self.name}. 
-        {self.instruction}
-        Available actions: "route", "use_tool", "respond", "complete".
-        If "route", "target_agent" must be one of: Router, Planner, Researcher, Executor.
-        If "use_tool", "tool_name" must be one of: {list(TOOLS_MAP.keys())} and "tool_args" must be a dict.
-        Output exact JSON."""
+{self.instruction}
+
+You MUST respond with ONLY a valid JSON object. No other text.
+Available "next_action" values: "route", "use_tool", "respond", "complete".
+If "route", set "target_agent" to one of: Router, JDAnalyzer, Matcher, ResumeGenerator, Optimizer.
+If "use_tool", set "tool_name" to one of: {list(TOOLS_MAP.keys())} and provide "tool_args" as a dict.
+If "complete" or "respond", set "result" to a string with the output.
+
+Example response format:
+{{"next_action": "route", "target_agent": "Matcher", "reasoning": "JD analysis complete, sending skills to Matcher."}}
+{{"next_action": "use_tool", "tool_name": "VectorSearchTool", "tool_args": {{"query": "React frontend"}}, "reasoning": "Need to search user profile."}}
+{{"next_action": "complete", "result": "Done.", "reasoning": "Task finished."}}"""
         return await llm_client.generate_json(system_prompt, prompt)
 
     async def send_message(self, receiver: str, msg_type: str, payload: dict, context: dict):

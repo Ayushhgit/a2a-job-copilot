@@ -42,7 +42,14 @@ async def generate_resume(request: Request, req: GenerateRequest):
     
     payload = {
         "job_description": req.job_description,
-        "profile": profile.dict()
+        "profile_meta": {
+            "name": profile.name,
+            "email": profile.email,
+            "phone": profile.phone,
+            "linkedin": profile.linkedin,
+            "skills": profile.skills,
+            "education": [e.dict() for e in profile.education],
+        }
     }
     
     msg = A2AMessage(

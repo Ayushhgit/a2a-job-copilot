@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 import App from './App.tsx'
-import './index.css'
 import 'reactflow/dist/style.css';
+import './index.css'
 
 const queryClient = new QueryClient();
 

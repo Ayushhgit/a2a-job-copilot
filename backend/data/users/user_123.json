@@ -1,0 +1,64 @@
+{
+    "id": "user_123",
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "phone": "+1 555-0100",
+    "linkedin": "linkedin.com/in/janedoe",
+    "skills": [
+        "Python",
+        "FastAPI",
+        "React",
+        "TypeScript",
+        "SQL",
+        "Docker",
+        "Machine Learning"
+    ],
+    "experience": [
+        {
+            "id": "exp_1",
+            "company": "TechNova",
+            "title": "Senior Software Engineer",
+            "startDate": "2021",
+            "endDate": "Present",
+            "description": [
+                "Architected microservices using Python and FastAPI.",
+                "Reduced latency by 40% using Redis caching."
+            ]
+        },
+        {
+            "id": "exp_2",
+            "company": "DataFlow",
+            "title": "Data Engineer",
+            "startDate": "2018",
+            "endDate": "2021",
+            "description": [
+                "Built ETL pipelines processing 1TB of data daily.",
+                "Implemented vector embeddings for recommendation system."
+            ]
+        }
+    ],
+    "projects": [
+        {
+            "id": "proj_1",
+            "name": "AI Resume Builder",
+            "description": [
+                "Developed a multi-agent AI system for dynamic resume generation."
+            ],
+            "technologies": [
+                "React",
+                "FastAPI",
+                "LLMs"
+            ]
+        }
+    ],
+    "education": [
+        {
+            "id": "edu_1",
+            "institution": "State University",
+            "degree": "B.S. Computer Science",
+            "startDate": "2014",
+            "endDate": "2018",
+            "gpa": "3.8"
+        }
+    ]
+}

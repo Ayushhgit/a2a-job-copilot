@@ -99,10 +99,3 @@ The frontend will start at `http://localhost:5173`. Open it in your browser, ent
 
 ---
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! 
-
-## 📝 License
-
-This project is open-source and available under the standard MIT License.

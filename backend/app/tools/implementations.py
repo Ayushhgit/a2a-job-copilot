@@ -1,5 +1,6 @@
 from app.tools.base import BaseTool
 from app.core.vector_store import vector_store
+from app.core.logger import logger
 from typing import Dict, Any, Type
 import json
 from pydantic import BaseModel, Field
@@ -21,8 +22,9 @@ class VectorSearchTool(BaseTool):
     async def execute(self, query: str = "", **kwargs) -> Any:
         try:
             res = vector_store.search(query, top_k=3)
-            return json.dumps(res)
+            return json.dumps(res, default=str)
         except Exception as e:
+            logger.exception("VectorSearchTool failed")
             return f"Error searching vector store: {e}"
 
 class CompileLatexArgs(BaseModel):

@@ -1,67 +1,86 @@
-import React, { useState } from 'react';
-import { Download, Copy, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Copy, Check, FileCode } from 'lucide-react';
 import { useA2AStore } from '../store/a2aStore';
 
+function extractLatex(raw: string): string {
+  const start = raw.indexOf('\\documentclass');
+  if (start === -1) return raw;
+  const trimmed = raw.substring(start);
+  const end = trimmed.lastIndexOf('\\end{document}');
+  return end === -1 ? trimmed : trimmed.substring(0, end + 14);
+}
+
 export function ResumeOutput() {
-    const finalLatex = useA2AStore((s) => s.finalLatex);
-    const [copied, setCopied] = useState(false);
+  const finalLatex = useA2AStore((s) => s.finalLatex);
+  const [copied, setCopied] = useState(false);
 
-    if (!finalLatex) return null;
+  if (!finalLatex) return null;
 
-    const parsePayload = () => {
-        try {
-             if(finalLatex.includes("\\documentclass")){
-                const startIndex = finalLatex.indexOf("\\documentclass");
-                let latexCode = finalLatex.substring(startIndex);
-                const endIndex = latexCode.lastIndexOf("\\end{document}") + 14; 
-                return latexCode.substring(0, endIndex);
-             }
-             return finalLatex;
-        } catch (e) {
-            return finalLatex;
-        }
-    };
+  const tex = extractLatex(finalLatex);
+  const lines = tex.split('\n').length;
 
-    const texContent = parsePayload();
+  const handleCopy = () => {
+    navigator.clipboard.writeText(tex);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(texContent);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+  const handleDownload = () => {
+    const blob = new Blob([tex], { type: 'text/plain' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = 'resume_optimized.tex';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
-    const handleDownload = () => {
-        const blob = new Blob([texContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'optimized_resume.tex';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
-    return (
-        <div className="glass-panel p-6 rounded-xl border border-emerald-500/30 bg-emerald-950/20 shadow-xl shadow-emerald-500/5 col-span-1 lg:col-span-2 relative">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-emerald-400 flex items-center gap-2">
-                    <CheckCircle className="w-6 h-6 text-emerald-400" />
-                    Final Optimized Resume (.tex)
-                </h3>
-                <div className="flex gap-2 text-sm">
-                    <button onClick={handleCopy} className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition-colors text-gray-200">
-                        <Copy className="w-4 h-4" /> {copied ? 'Copied!' : 'Copy'}
-                    </button>
-                    <button onClick={handleDownload} className="flex items-center gap-1 bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 rounded transition-colors text-white">
-                        <Download className="w-4 h-4" /> Download .tex
-                    </button>
-                </div>
-            </div>
-            
-            <div className="bg-gray-950 rounded-lg p-4 max-h-96 overflow-y-auto border border-gray-800 font-mono text-sm text-orange-200 leading-relaxed custom-scrollbar">
-                <pre>{texContent}</pre>
-            </div>
+  return (
+    <>
+      {/* Header */}
+      <div
+        className="panel-header"
+        style={{ justifyContent: 'space-between', height: 44, padding: '0 14px' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FileCode size={13} color="#10b981" />
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#fafafa' }}>
+            Optimized Resume
+          </span>
+          <span style={{
+            fontSize: 10, color: '#3f3f46',
+            background: '#18181b', border: '1px solid #27272a',
+            padding: '1px 6px', borderRadius: 3,
+          }}>
+            .tex · {lines} lines
+          </span>
+          <span style={{
+            fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
+            background: '#052e16', color: '#4ade80', border: '1px solid #14532d',
+            padding: '1px 6px', borderRadius: 3,
+          }}>
+            Ready
+          </span>
         </div>
-    );
+
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="btn" onClick={handleCopy} style={{ fontSize: 11 }}>
+            {copied ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          <button className="btn" onClick={handleDownload} style={{ fontSize: 11 }}>
+            <Download size={12} />
+            Download .tex
+          </button>
+        </div>
+      </div>
+
+      {/* Code block */}
+      <pre className="code-output">
+        <code>{tex}</code>
+      </pre>
+    </>
+  );
 }

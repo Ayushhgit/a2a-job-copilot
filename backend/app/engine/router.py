@@ -1,9 +1,6 @@
-from app.core.llm import llm_client
 from app.core.event_bus import event_bus
-from app.models.message import A2AMessage, AgentDecision
+from app.models.message import A2AMessage
 from app.core.logger import logger
-from pydantic import ValidationError
-import json
 
 class LLMRouter:
     def __init__(self):
@@ -13,7 +10,16 @@ class LLMRouter:
     async def route_message(self, message: A2AMessage):
         logger.info(f"Router received message type: {message.type} from {message.sender}")
         
-        if message.type == "result" and message.sender in ["Optimizer", "System", "ResumeGenerator"]:
+        if message.type == "result" and message.sender == "ResumeGenerator":
+            resume_json = message.payload.get("result", "")
+            await event_bus.publish(A2AMessage(
+                sender=self.name, receiver="Frontend", type="log",
+                payload={"text": "Routing ResumeGenerator output → Optimizer."}, context=message.context
+            ))
+            await self._dispatch(message, "Optimizer", "Resume JSON constructed, optimizing.")
+            return
+
+        if message.type == "result" and message.sender in ["Optimizer", "System"]:
             await event_bus.publish(A2AMessage(
                 sender=self.name, receiver="Frontend", type="log",
                 payload={"text": "Final LaTeX generation complete!"}, context=message.context
@@ -25,37 +31,32 @@ class LLMRouter:
             return
 
         if message.type == "tool_result":
+            # Determine next agent based on who produced the tool result.
+            # Matcher's job is done after VectorSearch — hand off to ResumeGenerator.
+            # All others return to themselves to process their own tool output.
+            TOOL_RESULT_NEXT: dict = {
+                "Matcher": "ResumeGenerator",
+            }
+            next_agent = TOOL_RESULT_NEXT.get(message.sender, message.sender)
             await event_bus.publish(A2AMessage(
                 sender=self.name, receiver="Frontend", type="log",
-                payload={"text": "Routing Tool Result back to specific Agent."}, context=message.context
+                payload={"text": f"Routing Tool Result → {next_agent}."}, context=message.context
             ))
-            original_sender = message.payload.get("original", {}).get("sender", "Optimizer")
-            await self._dispatch(message, original_sender, "Tool output returned")
+            await self._dispatch(message, next_agent, "Tool output returned")
             return
 
-        system_prompt = """You are the intelligent Copilot Router. 
-        Route traffic through the resume generation pipeline:
-        1. JDAnalyzer (Extract keywords)
-        2. Matcher (Vector search & scoring)
-        3. ResumeGenerator (JSON construction)
-        4. Optimizer (Optimization & final LaTeX generation)
-        Determine the next best Agent based on the message. Output JSON: { "target_agent": "AgentName", "reasoning": "why" }."""
-        
-        user_prompt = f"Message payload: {json.dumps(message.payload)[:1000]} from {message.sender}. Type: {message.type}"
-        
-        try:
-            decision_data = await llm_client.generate_json(system_prompt, user_prompt)
-            decision = AgentDecision(next_action="route", target_agent=decision_data.get("target_agent", "JDAnalyzer"), reasoning=decision_data.get("reasoning", ""))
-        except Exception as e:
-            logger.error(f"Router LLM evaluation failed: {e}")
-            decision = AgentDecision(next_action="route", target_agent="JDAnalyzer", reasoning="Fallback routing.")
-            
+        PIPELINE_NEXT = {
+            "JDAnalyzer": "Matcher",
+            "Matcher": "ResumeGenerator",
+            "ResumeGenerator": "Optimizer",
+            "System": "JDAnalyzer",
+        }
+        target = PIPELINE_NEXT.get(message.sender, "JDAnalyzer")
         await event_bus.publish(A2AMessage(
             sender=self.name, receiver="Frontend", type="log",
-            payload={"text": f"Logical Route to {decision.target_agent}. Reason: {decision.reasoning}"}, context=message.context
+            payload={"text": f"Route {message.sender} → {target}."}, context=message.context
         ))
-        
-        await self._dispatch(message, decision.target_agent or "JDAnalyzer", decision.reasoning)
+        await self._dispatch(message, target, f"{message.sender} complete.")
         
     async def _dispatch(self, original_msg: A2AMessage, target: str, reason: str):
          await event_bus.publish(A2AMessage(
